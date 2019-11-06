@@ -13,15 +13,11 @@ class ClassDocBuilder:
 			self.functions_body = list()
 			self.props = list()
 			self.props_description = list()
-			self.is_inside_fun = False
-		
-
-		#def __str__(self):
-		#params = ""
-		#base_classes = list()
+			#self.is_inside_fun = False
 
 
-	def __init__(self, filename):
+
+	def __init__(self, filename, class_path):
 		print(filename)
 		self.init_content = list()
 		self.comment = ""
@@ -29,6 +25,9 @@ class ClassDocBuilder:
 		self.iter_input = iter("")
 		self.classes = list()
 		self.new_class = None
+		self.class_path = class_path
+		self.filename = filename
+		self.imports = list()
 		with open(filename, "r") as file:
 			self.init_content = file.readlines()
 			
@@ -54,7 +53,8 @@ class ClassDocBuilder:
 			else:
 				self.comment += line.strip()[1:].strip()
 		else:
-			if "class" in line:	
+			if line.strip().startswith("class ") or line.strip().startswith("abstract class ") \
+			or line.strip().startswith("open class ") or line.strip().startswith("object "):	
 				if self.new_class is not None:
 					self.classes.append(self.new_class)
 				self.new_class = self.ClassDoc()
@@ -113,7 +113,7 @@ class ClassDocBuilder:
 								bracket_stack.pop()
 							else:
 								print("ERROR")
-				self.new_class.functions_body.append(fun_body)
+				self.new_class.functions_body.append(" ".join(fun_body)
 
 			elif line.strip().startswith("val ") or line.strip().startswith("override val ") \
 			or line.strip().startswith("private val ") or line.strip().startswith("internal val ") \
@@ -126,10 +126,31 @@ class ClassDocBuilder:
 					self.new_class.props_description.append(self.comment)
 					self.comment = ""
 
-	def handle_imports(self):
+	def handle_imports(self, main_tree):
+		imports_to_find = list()
+		for import_item in imports:
+			import_item = import_item.replace('.', os.path.sep)
+			imports_to_find.append(os.path.join(self.class_path, import_item))
+		imported_files = list()
+		for import_item in imports_to_find: 
+			imported_file = main_tree.return_file(os.path.dirname(import_item), os.path.basename(import_item))
+			if imported_file is not None:
+				imported_files.append(imported_file)
 		for class_item in self.classes:
 			for function_body in class_item.functions_body
-				pass
+				for imported_file in imported_files:
+					regex_to_find_val = r'val\s.* = {}\(\)'.format(imported_file.class_name)
+					regex_to_find_var = r'var\s.* = {}\(\)'.format(imported_file.class_name)
+					finded_braces = re.findall(regex_to_find_val, line)
+					finded_braces += re.findall(regex_to_find_var, line)
+					if finded_braces is not None:
+						for new_obj in finded_braces:
+							new_obj_name = new_obj.split(" ")[1]
+							function_body.replace(new_obj_name, imported_file.class_name)
+					#for imported_file.functions
+						#if imported_file.class_name + func in function_body
+
+
 	def parse_line_import(self, line):
 		pass
 
