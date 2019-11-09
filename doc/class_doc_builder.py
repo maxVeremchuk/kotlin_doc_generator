@@ -1,4 +1,5 @@
 import re 
+import os
 
 class ClassDocBuilder:
 	class ClassDoc:
@@ -13,6 +14,7 @@ class ClassDocBuilder:
 			self.functions_body = list()
 			self.props = list()
 			self.props_description = list()
+			self.imports = list()
 			#self.is_inside_fun = False
 
 
@@ -28,7 +30,7 @@ class ClassDocBuilder:
 		self.class_path = class_path
 		self.filename = filename
 		self.imports = list()
-		with open(filename, "r") as file:
+		with open(os.path.join(class_path, filename), "r") as file:
 			self.init_content = file.readlines()
 			
 	def next_input(self):
@@ -113,7 +115,7 @@ class ClassDocBuilder:
 								bracket_stack.pop()
 							else:
 								print("ERROR")
-				self.new_class.functions_body.append(" ".join(fun_body)
+				self.new_class.functions_body.append(" ".join(fun_body))
 
 			elif line.strip().startswith("val ") or line.strip().startswith("override val ") \
 			or line.strip().startswith("private val ") or line.strip().startswith("internal val ") \
@@ -125,36 +127,54 @@ class ClassDocBuilder:
 				if self.comment != "":
 					self.new_class.props_description.append(self.comment)
 					self.comment = ""
+			elif line.strip().startswith("import "):
+				self.imports.append(line.split(" ")[1])
 
 	def handle_imports(self, main_tree):
 		imports_to_find = list()
-		for import_item in imports:
+		for import_item in self.imports:
 			import_item = import_item.replace('.', os.path.sep)
-			imports_to_find.append(os.path.join(self.class_path, import_item))
+			imports_to_find.append(os.path.join(self.class_path, import_item).strip() + ".kt")
+		print("++++++++++++++++++++++++++++ imports")
+		print(imports_to_find)
 		imported_files = list()
 		for import_item in imports_to_find: 
 			imported_file = main_tree.return_file(os.path.dirname(import_item), os.path.basename(import_item))
 			if imported_file is not None:
 				imported_files.append(imported_file)
 		for class_item in self.classes:
-			for function_body in class_item.functions_body
+			for function_body in class_item.functions_body:
 				for imported_file in imported_files:
-					regex_to_find_val = r'val\s.* = {}\(\)'.format(imported_file.class_name)
-					regex_to_find_var = r'var\s.* = {}\(\)'.format(imported_file.class_name)
-					finded_braces = re.findall(regex_to_find_val, line)
-					finded_braces += re.findall(regex_to_find_var, line)
-					if finded_braces is not None:
-						for new_obj in finded_braces:
-							new_obj_name = new_obj.split(" ")[1]
-							function_body.replace(new_obj_name, imported_file.class_name)
-					#for imported_file.functions
-						#if imported_file.class_name + func in function_body
+					print(imported_file)
+					for imported_file_class in imported_file.classes:
+						regex_to_find_val = r'val\s.* = {}\(\)'.format(imported_file_class.class_name)
+						regex_to_find_var = r'var\s.* = {}\(\)'.format(imported_file_class.class_name)
+						finded_variables = re.findall(regex_to_find_val, function_body)
+						finded_variables += re.findall(regex_to_find_var, function_body)
+						print(finded_variables)
+						if finded_variables is not None:
+							for new_obj in finded_variables:
+								new_obj_name = new_obj.split(" ")[1] + "."
+								print(new_obj_name)
+								function_body = \
+								 function_body.replace(new_obj_name[:-1], imported_file_class.class_name)
+						for imp_func in imported_file_class.functions:
+							imp_func_name = self.get_fun_name(imp_func)
+							print(imp_func_name)
+							if imported_file_class.class_name + "." + imp_func_name in function_body:
+								class_item.imports.append(imported_file.class_path + ' ' + \
+									imported_file.filename + ' ' + imp_func_name)
 
 
 	def parse_line_import(self, line):
 		pass
 
-
+	def get_fun_name(self, fun):
+		decl = fun.split(" ")
+		for i, item in enumerate(decl):
+			if item == "fun":
+				return decl[i + 1].split('(')[0]
+		return None
 
 	def print_classes(self):
 		for class_item in self.classes:
@@ -171,5 +191,7 @@ class ClassDocBuilder:
 				print(class_item.functions)
 				print("fun body---------------")
 				print(class_item.functions_body)
+				print("imp func---------------")
+				print(class_item.imports)
 			else:
 				print("None")
