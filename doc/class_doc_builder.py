@@ -165,17 +165,13 @@ class ClassDocBuilder:
 								class_item.imports.append(imported_file.class_path + ' ' + \
 									imported_file.filename + ' ' + imp_func_name)
 
-
-	def parse_line_import(self, line):
-		pass
-
 	def get_fun_name(self, fun):
 		decl = fun.split(" ")
 		for i, item in enumerate(decl):
 			if item == "fun":
 				return decl[i + 1].split('(')[0]
 		return None
-
+	
 	def print_classes(self):
 		for class_item in self.classes:
 			if class_item is not None:
