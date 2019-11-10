@@ -1,5 +1,6 @@
 import re 
 import os
+from collections import defaultdict
 
 class ClassDocBuilder:
 	class ClassDoc:
@@ -10,17 +11,16 @@ class ClassDocBuilder:
 			self.primary_constructor = ""
 			self.constructors = list()
 			self.functions = list()
-			self.functions_description = list()
+			self.functions_description = dict()
 			self.functions_body = list()
 			self.props = list()
-			self.props_description = list()
-			self.imports = list()
+			self.props_description = dict()
+			self.imports = defaultdict(list)
 			#self.is_inside_fun = False
 
 
 
 	def __init__(self, filename, class_path):
-		print(filename)
 		self.init_content = list()
 		self.comment = ""
 		self.is_full_comment = True	
@@ -56,7 +56,8 @@ class ClassDocBuilder:
 				self.comment += line.strip()[1:].strip()
 		else:
 			if line.strip().startswith("class ") or line.strip().startswith("abstract class ") \
-			or line.strip().startswith("open class ") or line.strip().startswith("object "):	
+			or line.strip().startswith("open class ") or line.strip().startswith("object ") \
+			or line.strip().startswith("interface "):	
 				if self.new_class is not None:
 					self.classes.append(self.new_class)
 				self.new_class = self.ClassDoc()
@@ -75,28 +76,38 @@ class ClassDocBuilder:
 					if item == "class":
 						class_name = splitted_line[i + 1]
 						class_name = class_name.split('<')[0].split('>')[0].split('(')[0].split(')')[0]
+				self.new_class.full_class_name = line.strip()[:-1]
+
 				finded_brace = re.search(r'\([^\)]+\)', line)
 				colon = line.find(":")
 				if finded_brace is not None:
-					self.new_class.full_class_name = line[:finded_brace.start()] + line[finded_brace.end():]
+					#self.new_class.full_class_name = line.strip()[:-1]
+					#self.new_class.full_class_name = line[:finded_brace.start()] + line[finded_brace.end():]
 					if finded_brace.start() < colon or colon == 0:
 						self.new_class.primary_constructor = class_name + finded_brace.group()
 				self.new_class.class_name = class_name
 			elif "constructor" in line:
 				line = self.new_class.class_name + line.split("constructor")[1]
-				if line.strrp()[-1] == "{":
-					line = line[:-1]
-				line = line.strip()	
+				 
+				if line.strip()[-1] == "{":
+					line = line.strip()[:-1]
+				else:
+					line = line.strip()
+
 				self.new_class.constructors.append(line)
+
 			elif line.strip().startswith("fun ") or line.strip().startswith("override fun ") \
 			or line.strip().startswith("private fun ") or line.strip().startswith("internal fun ") \
 			or line.strip().startswith("protected open fun ") or line.strip().startswith("protected fun "):
-				
+
 				if line.strip()[-1] == "{":
-					line = line[:-1]
+					line = line.strip()[:-1]
+				else:
+					line = line.strip()
+				
 				self.new_class.functions.append(line.strip())
 				if self.comment != "":
-					self.new_class.functions_description.append(self.comment)
+					self.new_class.functions_description[line.strip()] = self.comment
 					self.comment = ""
 
 				bracket_stack = ['{']
@@ -125,7 +136,7 @@ class ClassDocBuilder:
 			or line.strip().startswith("protected open var ") or line.strip().startswith("protected var "):
 				self.new_class.props.append(line.strip())
 				if self.comment != "":
-					self.new_class.props_description.append(self.comment)
+					self.new_class.props_description[line.strip()] = self.comment
 					self.comment = ""
 			elif line.strip().startswith("import "):
 				self.imports.append(line.split(" ")[1])
@@ -135,48 +146,57 @@ class ClassDocBuilder:
 		for import_item in self.imports:
 			import_item = import_item.replace('.', os.path.sep)
 			imports_to_find.append(os.path.join(self.class_path, import_item).strip() + ".kt")
-		print("++++++++++++++++++++++++++++ imports")
-		print(imports_to_find)
 		imported_files = list()
 		for import_item in imports_to_find: 
 			imported_file = main_tree.return_file(os.path.dirname(import_item), os.path.basename(import_item))
 			if imported_file is not None:
 				imported_files.append(imported_file)
+
 		for class_item in self.classes:
-			for function_body in class_item.functions_body:
+			if class_item is None:
+				continue
+			for func_idx, function_body in enumerate(class_item.functions_body):
 				for imported_file in imported_files:
-					print(imported_file)
 					for imported_file_class in imported_file.classes:
 						regex_to_find_val = r'val\s.* = {}\(\)'.format(imported_file_class.class_name)
 						regex_to_find_var = r'var\s.* = {}\(\)'.format(imported_file_class.class_name)
 						finded_variables = re.findall(regex_to_find_val, function_body)
 						finded_variables += re.findall(regex_to_find_var, function_body)
-						print(finded_variables)
 						if finded_variables is not None:
 							for new_obj in finded_variables:
 								new_obj_name = new_obj.split(" ")[1] + "."
-								print(new_obj_name)
 								function_body = \
 								 function_body.replace(new_obj_name[:-1], imported_file_class.class_name)
 						for imp_func in imported_file_class.functions:
-							imp_func_name = self.get_fun_name(imp_func)
-							print(imp_func_name)
+							imp_func_name = ClassDocBuilder.get_fun_name(imp_func)
 							if imported_file_class.class_name + "." + imp_func_name in function_body:
-								class_item.imports.append(imported_file.class_path + ' ' + \
-									imported_file.filename + ' ' + imp_func_name)
-
-	def get_fun_name(self, fun):
+								# if class_item.functions[func_idx] not in class_item.imports:
+								# 	class_item.functions[func_idx] = []
+								class_item.imports[class_item.functions[func_idx]].append((imported_file.class_path \
+								+ ' ' + imported_file.filename + ' ' + imp_func_name + ' ' + \
+								imported_file_class.class_name).strip())
+	@staticmethod
+	def get_fun_name(fun):
 		decl = fun.split(" ")
 		for i, item in enumerate(decl):
 			if item == "fun":
 				return decl[i + 1].split('(')[0]
 		return None
-	
+
+	@staticmethod
+	def get_prop_name(prop):
+		decl = prop.split(" ")
+		for i, item in enumerate(decl):
+			if item == "val" or item == "var":
+				return decl[i + 1][:-1]
+		return None
+
 	def print_classes(self):
 		for class_item in self.classes:
 			if class_item is not None:
 				print(class_item.description)
 				print(class_item.class_name)
+				print(class_item.full_class_name)
 				print(class_item.primary_constructor)
 				print(class_item.constructors)
 				print("prop---------------")
@@ -185,6 +205,8 @@ class ClassDocBuilder:
 				print(class_item.props_description)
 				print("fun---------------")
 				print(class_item.functions)
+				print("fun desc---------------")
+				print(class_item.functions_description)
 				print("fun body---------------")
 				print(class_item.functions_body)
 				print("imp func---------------")
