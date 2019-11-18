@@ -6,6 +6,7 @@ class DirDocBuilder:
 		self.files = list()
 		self.root_dir = ""
 		self.dirs = list()
+		self.index = list()
 
 	def generate_classed_doc(self, path):
 		self.root_dir = path
@@ -19,6 +20,10 @@ class DirDocBuilder:
 				new_dir_doc = DirDocBuilder()
 				new_dir_doc.generate_classed_doc(os.path.join(path, filename))
 				self.dirs.append(new_dir_doc)
+			elif filename.endswith(".md"):
+				with open(os.path.join(path, filename), "r") as file:
+					self.index = file.readlines()
+				
 
 	def generate_imports(self, main_tree):
 		for file in self.files:
