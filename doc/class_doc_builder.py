@@ -31,6 +31,7 @@ class ClassDocBuilder:
 		self.class_path = class_path
 		self.filename = filename
 		self.imports = list()
+		self.imports_alias = list()
 		self.is_outer_class = False
 		with open(os.path.join(class_path, filename), "r") as file:
 			self.init_content = file.readlines()
@@ -66,10 +67,10 @@ class ClassDocBuilder:
 				if " as " in line:
 					imp, alias = line.split(" as ")
 					self.imports.append(imp.split(" ")[1])
-					self.imports.append(alias)
+					self.imports_alias.append(imp.split(" ")[1] +  " " + alias.strip())
 				else:
 					self.imports.append(line.split(" ")[1])
-					print(line.split(" ")[1])
+				#self.imports.append(line.split(" ")[1])
 
 	def build_class(self, line, is_interface = False):
 		new_class = self.ClassDoc()
@@ -194,29 +195,34 @@ class ClassDocBuilder:
 		imports_to_find = list()
 		for import_item in self.imports:
 			import_item = import_item.replace(".", os.path.sep)
-			imports_to_find.append(os.path.join(self.class_path, import_item).strip() + ".kt")
-			imports_to_find.append(os.path.join(main_tree.root_dir, import_item).strip() + ".kt")
-			#print(main_tree.root_dir)
-			#print(import_item)
-			#print(self.class_path)
-			#print(import_item)
+			from_class_path = os.path.join(self.class_path, import_item).strip() + ".kt"
+			from_full_path = os.path.join(main_tree.root_dir, import_item).strip() + ".kt"
+			if from_class_path == from_full_path:
+				imports_to_find.append(from_class_path)
+			else:
+				imports_to_find.append(from_class_path)
+				imports_to_find.append(from_full_path)
 		imported_files = list()
 		for import_item in imports_to_find: 
-			#print(os.path.dirname(import_item))
-			#print(os.path.basename(import_item))
-			#print(main_tree.dirs[0].files)
 			imported_file = main_tree.return_file(os.path.dirname(import_item), os.path.basename(import_item))
-			print(imported_file)
+			#print(import_item)
 			if imported_file is not None:
 				imported_files.append(imported_file)
+				#print(imported_file.classes[0].class_name)
 
 		for class_item in self.classes:
 			if class_item is None:
 				continue
 			for func_idx, function_body in enumerate(class_item.functions_body):
+				for alias in self.imports_alias:
+					print(alias)
+					function_body = function_body.replace(alias.split(" ")[1] + ")", alias.split(" ")[0] + ")")
+					function_body = function_body.replace(alias.split(" ")[1] + ".", alias.split(" ")[0] + ".")
+					function_body = function_body.replace(alias.split(" ")[1] + "(", alias.split(" ")[0] + "(")
+					print(function_body)
+
 				for imported_file in imported_files:
 					for imported_file_class in imported_file.classes:
-						#print(imported_file_class)
 						regex_to_find_val = r'val\s.* = {}\(\)'.format(imported_file_class.class_name)
 						regex_to_find_var = r'var\s.* = {}\(\)'.format(imported_file_class.class_name)
 						finded_variables = re.findall(regex_to_find_val, function_body)
@@ -227,19 +233,22 @@ class ClassDocBuilder:
 								function_body = \
 								 function_body.replace(new_obj_name[:-1], imported_file_class.class_name)
 						for imp_func in imported_file_class.functions:
+							#print(imp_func)
 							imp_func_name = ClassDocBuilder.get_fun_name(imp_func)
 							if imported_file_class.class_name + "." + imp_func_name in function_body:
-								# if class_item.functions[func_idx] not in class_item.imports:
-								# 	class_item.functions[func_idx] = []
+								#print(imported_file.class_path)
 								class_item.imports[class_item.functions[func_idx]].append((imported_file.class_path \
 								+ ' ' + imported_file.filename + ' ' + imp_func_name + ' ' + \
 								imported_file_class.class_name).strip())
 							elif " " + imported_file_class.class_name + ")" in function_body or \
 							" " + imported_file_class.class_name + " " in function_body or \
 							"(" + imported_file_class.class_name + " " in function_body or\
-							"(" + imported_file_class.class_name + "(" in function_body:
+							"(" + imported_file_class.class_name + "(" in function_body or\
+							"." + imported_file_class.class_name + "(" in function_body or\
+							"." + imported_file_class.class_name + " " in function_body or\
+							"." + imported_file_class.class_name + ")" in function_body:
 								class_item.imports[class_item.functions[func_idx]].append((imported_file.class_path \
-								+ ' ' + imported_file.filename + ' ' + '-' + ' ' + \
+								+ ' ' + imported_file.filename + ' ' + 'constructor' + ' ' + \
 								imported_file_class.class_name).strip())
 
 	@staticmethod

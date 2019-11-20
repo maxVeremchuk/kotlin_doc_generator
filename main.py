@@ -7,17 +7,20 @@ import sys
 
 
 if __name__ == '__main__':
-	# class_doc = class_doc_builder.ClassDocBuilder(r'C:\Users\maxve\OneDrive\Робочий стіл\4course\mataprograming\kotlin_documentation\test.kt')
-	# class_doc.build_doucumentation()
-	# class_doc.print_classes()
-	if len(sys.argv) < 3:
-		print("Enter path to dir wtih -d flag or to file with -f flag")
+	if len(sys.argv) == 2 and sys.argv[1] == "-h":
+		print(
+"""
+Enter path to dir wtih -d flag(-d path) or to file with -f flag(-f path).
+In case of dir: new folder will be created with [your dir name]_documentation name with html files.
+In case of file: will be created html file
+""")
+	elif len(sys.argv) < 3:
+		print("write -h flag for help")
 	elif sys.argv[1] == "-d":
 		path = ""
 		for item in sys.argv[2:]:
 			path += item + " "
 		path = path.strip()
-	# r'C:\Users\maxve\OneDrive\Робочий стіл\4course\mataprograming\kotlin_documentation\test'
 		dir_doc = dir_doc_builder.DirDocBuilder()
 		dir_doc.generate_classed_doc(path)
 		dir_doc.generate_imports(dir_doc)
