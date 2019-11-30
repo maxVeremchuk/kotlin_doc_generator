@@ -45,7 +45,7 @@ class HTMLGenerator:
 	"""
 	<div style="overflow:auto; margin: 15px">
 		<div style="width: 30%; float: left"> <span><h4 style="position:absolute; margin-top:-0px; margin-left:10px">{}</h4></span> </div>
-		<div style="width: 70%; float: right"> <span><code>{}</code></span> <br> <span>{}</span> <span>{}</span> </div>
+		<div style="width: 70%; float: right"> <span><code>{}</code></span> <br> <span>{}</span> <span>{}</span> <span>{}</span> </div>
 	</div>
 	"""
 	import_a = \
@@ -92,18 +92,35 @@ class HTMLGenerator:
 			filler + class_item.description))
 		stream_file.write(self.header.format(filler + "Constructors"))
 		if class_item.primary_constructor != "":
-			stream_file.write(self.attr.format(filler + "primary", filler + class_item.primary_constructor, "", ""))
-		for constructor in class_item.constructors:
-			stream_file.write(self.attr.format(filler + "secondary", filler + constructor, "", ""))
+			stream_file.write(self.attr.format(filler + "primary", filler + class_item.primary_constructor, "", "", ""))
+		for i, constructor in enumerate(class_item.constructors):
+			annotations = ""
+			if len(class_item.constructors_ann[i]) > 0:
+				annotations = "<b>Annotations:</b><br>"
+			for annotation in class_item.constructors_ann[i]:
+				annotations += annotation + "\n"
+			stream_file.write(self.attr.format(filler + "secondary", filler + constructor, "", "", filler + annotations))
 
 		stream_file.write(self.header.format(filler + "Properties"))
-		for prop in class_item.props:
+		for i, prop in enumerate(class_item.props):
+			annotations = ""
+			if len(class_item.props_ann[i]) > 0:
+				annotations = "<b>Annotations:</b><br>"
+			for annotation in class_item.props_ann[i]:
+				annotations += annotation + "\n"
 			stream_file.write( \
 			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_prop_name(prop), filler + prop, \
-			filler + class_item.props_description[prop] if prop in class_item.props_description else "", ""))
+			filler + class_item.props_description[prop] if prop in class_item.props_description else "", "", \
+			filler + annotations))
 
 		stream_file.write(self.header.format(filler + "Functions"))
-		for func in class_item.functions:
+		for i, func in enumerate(class_item.functions):
+			annotations = ""
+			if len(class_item.functions_ann[i]) > 0:
+				annotations = "<b>Annotations:</b><br>"
+			for annotation in class_item.functions_ann[i]:
+				annotations += annotation + "\n"
+
 			import_functions = ""
 			for imported_func in class_item.imports[func]:
 				params = imported_func.split(' ')
@@ -124,7 +141,7 @@ class HTMLGenerator:
 			stream_file.write( \
 			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_fun_name(func), filler +  func, \
 			filler + class_item.functions_description[func] if func in class_item.functions_description else "", \
-			filler + import_functions))		
+			filler + import_functions, filler + annotations))		
 
 	def build_index_from_md(self, path, tree, main_path, origin_main_dir):
 		with codecs.open(os.path.join(path, "index").strip() + ".html", "w", "utf-8") as stream_file:

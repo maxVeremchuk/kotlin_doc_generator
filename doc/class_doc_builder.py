@@ -10,11 +10,15 @@ class ClassDocBuilder:
 			self.full_class_name = ""
 			self.primary_constructor = ""
 			self.constructors = list()
+			self.constructors_ann = list(list())
+			self.class_ann = list()
 			self.functions = list()
 			self.functions_description = dict()
 			self.functions_body = list()
+			self.functions_ann = list(list())
 			self.props = list()
 			self.props_description = dict()
+			self.props_ann = list(list())
 			self.imports = defaultdict(list)
 			self.nested_classes = list()
 			#self.is_inside_fun = False
@@ -33,6 +37,7 @@ class ClassDocBuilder:
 		self.imports = list()
 		self.imports_alias = list()
 		self.is_outer_class = False
+		self.annotation = list()
 		with open(os.path.join(class_path, filename), "r") as file:
 			self.init_content = file.readlines()
 			
@@ -58,8 +63,11 @@ class ClassDocBuilder:
 			else:
 				self.comment += line.strip()[1:].strip()
 		else: 
+			line = self.handle_annotation(line)
+
 			if line.strip().startswith("class ") or line.strip().startswith("abstract class ") \
-			or line.strip().startswith("open class ") or line.strip().startswith("object "):
+			or line.strip().startswith("open class ") or line.strip().startswith("object ") \
+			or line.strip().startswith("annotation class "):
 				self.classes.append(self.build_class(line))
 			elif line.strip().startswith("interface "):
 				self.classes.append(self.build_class(line, True))
@@ -72,8 +80,58 @@ class ClassDocBuilder:
 					self.imports.append(line.split(" ")[1])
 				#self.imports.append(line.split(" ")[1])
 
+	def handle_annotation(self, line):
+		while line.strip().startswith('@'):
+			full_annotation = ""
+
+			if re.findall(r'@[A-Za-z0-9]+\(', line) != []:
+				annotation_name, line_without_name = line.split('(', 1)
+				bracket_stack = ['(']
+				open_list = ["("] 
+				close_list = [")"]
+				end_of_annotation = 0
+				first = True
+				full_annotation += annotation_name
+
+				while(len(bracket_stack) != 0):
+					if not first:
+						full_annotation += line_without_name
+						line_without_name = next(self.iter_input)
+
+					first = False
+					for j, letter in enumerate(line_without_name):
+						if letter in open_list:
+							bracket_stack.append(letter)
+						elif letter in close_list:
+							pos = close_list.index(letter)
+							if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+								bracket_stack.pop()
+								full_annotation += line_without_name[:j + 1]
+								line_without_name = line_without_name[j:]
+								print(line_without_name)
+							else:
+								print("ERROR ANNOTAION")
+								return None
+
+				if line_without_name == "":
+					line = next(self.iter_input)
+				else:
+					line = line_without_name.strip()
+			else:
+				if line.strip().count(' ') > 0:
+					full_annotation, line = line.split(' ', 1)
+					print(line)
+				else:
+					full_annotation = line.strip()
+					line = next(self.iter_input)
+			self.annotation.append(full_annotation.strip())
+			print(self.annotation)
+		return line
+
 	def build_class(self, line, is_interface = False):
 		new_class = self.ClassDoc()
+		new_class.class_ann.extend(self.annotation)
+		self.annotation = list()
 		if self.comment != "":
 			new_class.description = self.comment
 			self.comment = ""
@@ -123,6 +181,8 @@ class ClassDocBuilder:
 						print("ERROR CLASS")
 						return None
 					
+			line = self.handle_annotation(line)
+
 			if (line.strip().startswith("inner class ") or line.strip().startswith("class ")):
 				new_class.nested_classes.append(self.build_class(line))	
 				bracket_stack_class.pop()
@@ -136,6 +196,10 @@ class ClassDocBuilder:
 					line = line.strip()
 
 				new_class.constructors.append(line)
+				new_class.constructors_ann.append(self.annotation)
+				self.annotation = list()
+
+
 
 			elif line.strip().startswith("fun ") or line.strip().startswith("override fun ") \
 			or line.strip().startswith("private fun ") or line.strip().startswith("internal fun ") \
@@ -176,6 +240,9 @@ class ClassDocBuilder:
 								return None
 				new_class.functions_body.append(" ".join(fun_body))
 				bracket_stack_class.pop()
+				new_class.functions_ann.append(self.annotation)
+				self.annotation = list()
+
 
 			elif line.strip().startswith("val ") or line.strip().startswith("override val ") \
 			or line.strip().startswith("private val ") or line.strip().startswith("internal val ") \
@@ -189,6 +256,9 @@ class ClassDocBuilder:
 				if self.comment != "":
 					self.new_class.props_description[line.strip()] = self.comment
 					self.comment = ""
+				new_class.props_ann.append(self.annotation)
+				self.annotation = list()
+
 		return new_class
 
 	def handle_imports(self, main_tree):
@@ -264,7 +334,9 @@ class ClassDocBuilder:
 		decl = prop.split(" ")
 		for i, item in enumerate(decl):
 			if item == "val" or item == "var":
-				return decl[i + 1][:-1]
+				if decl[i + 1].endswith(':'):
+					return decl[i + 1][:-1]
+				return decl[i + 1]
 		return None
 
 	def print_classes(self):
