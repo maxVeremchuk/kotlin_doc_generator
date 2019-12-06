@@ -51,6 +51,12 @@ class ClassDocBuilder:
 			with open(os.path.join(class_path, filename), "r") as file:
 				self.init_content = file.readlines()
 			self.init_content.append("")
+			temp_init_content = "`".join(self.init_content)
+			finded_line = re.findall(r'"([^"]*)"', temp_init_content)
+			if finded_line is not None:
+				for line in finded_line:
+					temp_init_content = temp_init_content.replace("\"" + line  + "\"", "")
+			self.init_content = temp_init_content.split("`")
 		except:
 			print("error in reading file")
 			
@@ -70,7 +76,7 @@ class ClassDocBuilder:
 
 	def parse_line(self, line):
 		#print("parse_line",line)	
-		if "/*" in line:
+		if "/**" in line:
 			self.is_full_comment = False
 		elif not self.is_full_comment:
 			if "*/" in line:
@@ -110,7 +116,9 @@ class ClassDocBuilder:
 				last = False
 				temp_line = line
 				while(len(bracket_stack) != 0) or first:
-					first = False	
+					first = False
+					#print(line)	
+					#print(bracket_stack)
 					for j, letter in enumerate(line):
 						if letter in open_list:
 							last = False
@@ -134,6 +142,7 @@ class ClassDocBuilder:
 				elif line.strip().endswith("{}"):
 					line = line.strip()[:-2]
 
+				line = line[:line.find('{')]
 				
 				self.functions.append(line.strip())
 				if self.comment != "":
@@ -670,9 +679,12 @@ class ClassDocBuilder:
 		decl = fun.split(" ")
 		for i, item in enumerate(decl):
 			if item == "fun":
-				if not re.compile("[A-Za-z0-9]+").fullmatch(decl[i + 1].split('(')[0]):
-					return "anonymous"
-				return decl[i + 1].split('(')[0]
+				while i < len(decl) - 1:
+					if re.compile("[A-Za-z0-9]+").fullmatch(decl[i + 1].split('(')[0]):
+						return decl[i + 1].split('(')[0]
+					i += 1
+				return "anonymous"
+				#return decl[i + 1].split('(')[0]
 		return None
 
 	@staticmethod
