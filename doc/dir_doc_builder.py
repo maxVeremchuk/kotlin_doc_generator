@@ -21,7 +21,7 @@ class DirDocBuilder:
 				new_dir_doc.generate_classed_doc(os.path.join(path, filename))
 				self.dirs.append(new_dir_doc)
 			elif filename.endswith(".md"):
-				with open(os.path.join(path, filename), "r") as file:
+				with open(os.path.join(path, filename), "r", encoding='utf-8') as file:
 					self.index = file.readlines()
 				
 

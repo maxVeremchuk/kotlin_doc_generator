@@ -41,6 +41,13 @@ class HTMLGenerator:
 	</div>
 	"""
 
+	file_descript = \
+	"""
+	<div style="overflow:auto; margin: 15px">
+		<h5>{}</h5>
+	</div>
+	"""
+
 	attr = \
 	"""
 	<div style="overflow:auto; margin: 15px">
@@ -57,7 +64,6 @@ class HTMLGenerator:
 
 
 	def generate_html(self, tree, path, main_path, origin_main_dir, build_index = True):
-
 		if build_index:
 			self.build_index_from_md(path, tree, main_path, origin_main_dir)
 		for file in tree.files:
@@ -73,6 +79,9 @@ class HTMLGenerator:
 				self.generate_html(dir_item, sub_dir_path, main_path, origin_main_dir, False)
 	def generate_html_for_file(self, file, path, main_path, origin_main_dir):
 		with codecs.open(os.path.join(path, file.filename).strip() + ".html", "w", "utf-8") as stream_file:
+			stream_file.write(self.head)
+			if file.file_comment != "":
+				stream_file.write(self.file_descript.format(file.file_comment))
 			for class_item in file.classes:
 				if class_item is None:
 					continue
@@ -81,13 +90,26 @@ class HTMLGenerator:
 				if len(class_item.nested_classes) > 0:
 					stream_file.write(self.header.format("Nested Classes"))
 					for nested_class in class_item.nested_classes:
+						if nested_class is None:
+							continue
 						self.write_class_info_to_file(nested_class, stream_file, 1, file.class_path)
+			if len(file.functions) > 0:
+				stream_file.write(self.header.format("Functions:"))
+			for i, func in enumerate(file.functions):
+				annotations = ""
+				if len(file.functions_ann[i]) > 0:
+					annotations = "<b>Annotations:</b><br>"
+				for annotation in file.functions_ann[i]:
+					annotations += annotation + "\n"
+				func_rep_tags = func.replace('<', "&lt;").replace('>', "&gt;")
+				stream_file.write(
+				self.attr.format(class_doc_builder.ClassDocBuilder.get_fun_name(func), func_rep_tags, \
+				file.functions_description[func] if func in file.functions_description else "", \
+				"", annotations))
 
 
 	def write_class_info_to_file(self, class_item, stream_file, indent, class_item_class_path):
 		filler = "<span style=\"margin-left:" + str(indent * 20) +"px\"></span>"
-		if indent == 0:
-			stream_file.write(self.head)
 		stream_file.write(self.class_name.format(filler + class_item.class_name, filler + class_item.full_class_name, \
 			filler + class_item.description))
 		stream_file.write(self.header.format(filler + "Constructors"))
@@ -116,10 +138,11 @@ class HTMLGenerator:
 		stream_file.write(self.header.format(filler + "Functions"))
 		for i, func in enumerate(class_item.functions):
 			annotations = ""
-			if len(class_item.functions_ann[i]) > 0:
-				annotations = "<b>Annotations:</b><br>"
-			for annotation in class_item.functions_ann[i]:
-				annotations += annotation + "\n"
+			if len(class_item.functions_ann) > i:
+				if len(class_item.functions_ann[i]) > 0:
+					annotations = "<b>Annotations:</b><br>"
+				for annotation in class_item.functions_ann[i]:
+					annotations += annotation + "\n"
 
 			import_functions = ""
 			for imported_func in class_item.imports[func]:
@@ -129,7 +152,7 @@ class HTMLGenerator:
 					class_path += path + " "
 				class_path.strip()
 				filename = params[-3]
-				func_name = params[-2]
+				func_name = params[-2].replace('<', "&lt;").replace('>', "&gt;")
 				imp_class_name = params[-1]
 				relpath = os.path.relpath(class_path, \
 				class_item_class_path)
@@ -138,8 +161,9 @@ class HTMLGenerator:
 				imp_class_name + "." + func_name)
 			if import_functions != "":
 				import_functions = "<b>Imported:</b><br>" + import_functions
+			func_rep_tags = func.replace('<', "&lt;").replace('>', "&gt;")
 			stream_file.write( \
-			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_fun_name(func), filler +  func, \
+			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_fun_name(func), filler +  func_rep_tags, \
 			filler + class_item.functions_description[func] if func in class_item.functions_description else "", \
 			filler + import_functions, filler + annotations))		
 
@@ -157,10 +181,11 @@ class HTMLGenerator:
 	def print_classes(self, tree, stream_file, main_path, origin_main_dir):
 		for file in tree.files:
 			for class_item in file.classes:
-				relpath = os.path.relpath(file.class_path, \
-				os.path.join(os.path.dirname(main_path), origin_main_dir))
-				relpath = os.path.join(relpath, file.filename)
-				stream_file.write(self.import_a.format(relpath + ".html", class_item.class_name))
+				if class_item is not None:
+					relpath = os.path.relpath(file.class_path, \
+					os.path.join(os.path.dirname(main_path), origin_main_dir))
+					relpath = os.path.join(relpath, file.filename)
+					stream_file.write(self.import_a.format(relpath + ".html", class_item.class_name))
 		else:
 			for dir_item in tree.dirs:
 				self.print_classes(dir_item, stream_file, main_path, origin_main_dir)
