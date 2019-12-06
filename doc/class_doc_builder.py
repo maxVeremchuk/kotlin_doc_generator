@@ -130,7 +130,7 @@ class ClassDocBuilder:
 								if len(bracket_stack) == 0:
 									last = True
 							else:
-								print("ERROR FUN")
+								print(" FUN")
 								return
 					if not last:
 						line = next(self.iter_input)
@@ -192,7 +192,7 @@ class ClassDocBuilder:
 									stop = True
 									break
 							else:
-								print("ERROR ANNOTAION")
+								print(" ANNOTAION")
 								return line
 					if stop:
 						break
@@ -273,7 +273,7 @@ class ClassDocBuilder:
 						if ((len(bracket_stack_class) > 0) and (open_list[pos] == bracket_stack_class[-1])): 
 							bracket_stack_class.pop()
 						else:
-							print("ERROR CLASS")
+							print(" CLASS")
 							return new_class
 		#print("00", line)
 		while(len(bracket_stack_class) != 0):
@@ -301,7 +301,7 @@ class ClassDocBuilder:
 					if ((len(bracket_stack_class) > 0) and (open_list[pos] == bracket_stack_class[-1])): 
 						bracket_stack_class.pop()
 					else:
-						print("ERROR CLASS")
+						print(" CLASS")
 						return new_class
 			
 		
@@ -336,7 +336,7 @@ class ClassDocBuilder:
 								if len(bracket_stack) == 0:
 									last = True
 							else:
-								print("ERROR CONSTRUCTOR")
+								print(" CONSTRUCTOR")
 								return new_class
 					if not last:
 						line = next(self.iter_input)
@@ -366,7 +366,7 @@ class ClassDocBuilder:
 									if len(bracket_stack) == 0:
 										last = True
 								else:
-									print("ERROR CONSTRUCTOR")
+									print(" CONSTRUCTOR")
 									return new_class
 						#if not last:				
 					line = temp_line.strip()[:-1]
@@ -420,7 +420,7 @@ class ClassDocBuilder:
 											#print("break",line)
 											last = True
 									else:
-										print("ERROR FUN BODY ABS")
+										print(" FUN BODY ABS")
 										return new_class
 							if not last:
 								line = next(self.iter_input)
@@ -503,7 +503,7 @@ class ClassDocBuilder:
 										if len(bracket_stack) == 0:
 											last = True
 									else:
-										print("ERROR FUN")
+										print(" FUN")
 										return new_class
 							if not last:
 								line = next(self.iter_input)
@@ -544,7 +544,7 @@ class ClassDocBuilder:
 								if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
 									bracket_stack.pop()
 								else:
-									print("ERROR FUN")
+									print(" FUN")
 									return new_class
 					#bracket_stack_class.pop()
 					#print("funn",bracket_stack_class)
@@ -610,7 +610,7 @@ class ClassDocBuilder:
 										#print("break",line)
 										last = True
 								else:
-									print("ERROR FUN BODY")
+									print(" FUN BODY")
 									return new_class
 						if not last:
 							line = next(self.iter_input)

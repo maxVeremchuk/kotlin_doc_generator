@@ -21,6 +21,8 @@ In case of file: will be created html file
 		for item in sys.argv[2:]:
 			path += item + " "
 		path = path.strip()
+		if path[-1] == "\\":
+			path = path[:-1]
 		dir_doc = dir_doc_builder.DirDocBuilder()
 		dir_doc.generate_classed_doc(path)
 		dir_doc.generate_imports(dir_doc)
