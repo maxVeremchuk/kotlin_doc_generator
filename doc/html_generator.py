@@ -177,6 +177,8 @@ class HTMLGenerator:
 				stream_file.write(line)
 			stream_file.write(self.header.format("Classes:"))
 			self.print_classes(tree, stream_file, main_path, origin_main_dir)
+			stream_file.write(self.header.format("Files:"))
+			self.print_files(tree, stream_file, main_path, origin_main_dir)
 
 	def print_classes(self, tree, stream_file, main_path, origin_main_dir):
 		for file in tree.files:
@@ -186,6 +188,14 @@ class HTMLGenerator:
 					os.path.join(os.path.dirname(main_path), origin_main_dir))
 					relpath = os.path.join(relpath, file.filename)
 					stream_file.write(self.import_a.format(relpath + ".html", class_item.class_name))
-		else:
-			for dir_item in tree.dirs:
-				self.print_classes(dir_item, stream_file, main_path, origin_main_dir)
+		for dir_item in tree.dirs:
+			self.print_classes(dir_item, stream_file, main_path, origin_main_dir)
+
+	def print_files(self, tree, stream_file, main_path, origin_main_dir):
+		for file in tree.files:
+				relpath = os.path.relpath(file.class_path, \
+				os.path.join(os.path.dirname(main_path), origin_main_dir))
+				relpath = os.path.join(relpath, file.filename)
+				stream_file.write(self.import_a.format(relpath + ".html", file.filename))
+		for dir_item in tree.dirs:
+			self.print_files(dir_item, stream_file, main_path, origin_main_dir)

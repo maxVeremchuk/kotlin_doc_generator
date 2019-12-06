@@ -680,7 +680,7 @@ class ClassDocBuilder:
 		for i, item in enumerate(decl):
 			if item == "fun":
 				while i < len(decl) - 1:
-					if re.compile("[A-Za-z0-9]+").fullmatch(decl[i + 1].split('(')[0]):
+					if re.compile("[A-Za-z0-9\\.]+").fullmatch(decl[i + 1].split('(')[0]):
 						return decl[i + 1].split('(')[0]
 					i += 1
 				return "anonymous"
