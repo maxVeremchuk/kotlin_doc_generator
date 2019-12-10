@@ -102,6 +102,7 @@ class ClassDocBuilder:
 			elif line.strip().startswith("interface ") or " interface " in line:
 				self.classes.append(self.build_class(line, True))
 			elif line.strip().startswith("import "):
+				self.annotation = list()
 				if " as " in line:
 					imp, alias = line.split(" as ")
 					self.imports.append(imp.split(" ")[1])
@@ -109,6 +110,7 @@ class ClassDocBuilder:
 				else:
 					self.imports.append(line.split(" ")[1])
 			elif line.strip().startswith("fun ") or " fun " in line:
+
 				bracket_stack = []
 				open_list = ["[","{","("] 
 				close_list = ["]","}",")"] 
@@ -117,8 +119,6 @@ class ClassDocBuilder:
 				temp_line = line
 				while(len(bracket_stack) != 0) or first:
 					first = False
-					#print(line)	
-					#print(bracket_stack)
 					for j, letter in enumerate(line):
 						if letter in open_list:
 							last = False
@@ -134,27 +134,60 @@ class ClassDocBuilder:
 								return
 					if not last:
 						line = next(self.iter_input)
-						temp_line += line.strip()
+						temp_line += line
 				line = temp_line
-				#print(line)
-				if line.strip()[-1] == "{":
-					line = line.strip()[:-1]
-				elif line.strip().endswith("{}"):
-					line = line.strip()[:-2]
-
-				line = line[:line.find('{')]
+				fun_body = ""
+				if line.strip().endswith("{}"):
+				 	line = line.strip()[:-2]
+				 	fun_body = ""
+				else:
+					fun_body = re.findall(r"\{\s[\s\S]*\}$", line)
+		
+					if len(fun_body) != 0:
+						fun_body = fun_body[0]
+						line = line[:line.find(fun_body)]
+					else:
+						fun_body = ""
+				# has_body = False
+				# if line.strip()[-1] == "{":
+				# 	line = line.strip()[:-1]
+				# 	has_body = True
+				# 	if line.strip().endswith("when"):
+				# 		line = line.strip()[:len(line) - 6]
 				
+
+				#line = line[:line.find('{')]
+				#print(line)
 				self.functions.append(line.strip())
 				if self.comment != "":
 					self.functions_description[line.strip()] = self.comment
 					self.comment = ""
 				#print(line)
-				fun_body = list()
+				
+				# if has_body:
+				# 	bracket_stack = ["{"]
+				# 	open_list = ["[","{","("] 
+				# 	close_list = ["]","}",")"] 
+				# 	while(len(bracket_stack) != 0) or first:
+				# 		line = next(self.iter_input)
+				# 		fun_body.append(line)
+				# 		for j, letter in enumerate(line):
+				# 			if letter in open_list:
+				# 				bracket_stack.append(letter)
+				# 			elif letter in close_list:
+				# 				pos = close_list.index(letter)
+				# 				if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+				# 					bracket_stack.pop()
+				# 				else:
+				# 					print(" FUN")
+				# 					return
 				self.functions_body.append(" ".join(fun_body))
 				self.functions_ann.append(self.annotation)
+				#print("fun",self.annotation)
 				self.annotation = list()
-				
-			if len(self.memory) > 0:
+			else:
+				self.annotation = list()
+			while len(self.memory) > 0:
 				self.parse_line(self.memory.pop())
 				#self.imports.append(line.split(" ")[1])
 
@@ -163,7 +196,8 @@ class ClassDocBuilder:
 		while line.strip().startswith('@'):
 			full_annotation = ""
 
-			if re.findall(r'@[A-Za-z0-9]+\(', line) != []:
+			if re.findall(r'@[A-Za-z0-9:,\.]+\(', line) != []:
+				#print(line)
 				annotation_name, line_without_name = line.split('(', 1)
 				#print(annotation_name, line_without_name)
 				bracket_stack = ['(']
@@ -177,7 +211,7 @@ class ClassDocBuilder:
 					if not first:
 						full_annotation += line_without_name
 						line_without_name = next(self.iter_input)
-
+					#print(line_without_name)
 					first = False
 					for j, letter in enumerate(line_without_name):
 						if letter in open_list:
@@ -188,6 +222,7 @@ class ClassDocBuilder:
 								bracket_stack.pop()
 								full_annotation += line_without_name[:j + 1]
 								line_without_name = line_without_name[j + 1:]
+								#print(full_annotation)
 								if len(bracket_stack) == 0:
 									stop = True
 									break
@@ -196,6 +231,7 @@ class ClassDocBuilder:
 								return line
 					if stop:
 						break
+				
 				if line_without_name == "":
 					line = next(self.iter_input)
 				else:
@@ -242,7 +278,7 @@ class ClassDocBuilder:
 			if item == "class" or item == "interface" or item == "object":
 				class_name = splitted_line[i + 1]
 				class_name = class_name.split('<')[0].split('>')[0].split('(')[0].split(')')[0]
-				if not re.compile("[A-Za-z0-9]+").fullmatch(class_name):
+				if not re.compile("[A-Za-z0-9_]+").fullmatch(class_name):
 					class_name = "anonymous"
 				break
 		if line.strip()[-1] == "{":		
@@ -280,7 +316,7 @@ class ClassDocBuilder:
 			# if len(self.memory) > 0:
 			# 	line = self.memory.pop()
 			# else:
-			
+			self.annotation = list()
 			if not self.skip:
 				line = next(self.iter_input)
 				#print(line)
@@ -288,8 +324,10 @@ class ClassDocBuilder:
 					continue
 			else:
 				line = self.skip_line
+				#print("skip")
 				self.skip = False
 			#print("1", line)
+			line = self.handle_annotation(line)
 			open_list = ["{"] 
 			close_list = ["}"] 
 			for j, letter in enumerate(line):
@@ -306,10 +344,11 @@ class ClassDocBuilder:
 			
 		
 			#print("END",bracket_stack_class)
-			line = self.handle_annotation(line)
 			#print("2", line)
+			#print(self.annotation)
 			if line.strip().startswith("class ") or " class " in line \
 			or line.strip().startswith("object ") or " object " in line:
+				#print("inner")
 				new_class.nested_classes.append(self.build_class(line))	
 				bracket_stack_class.pop()
 			elif line.strip().startswith("constructor"):
@@ -548,9 +587,10 @@ class ClassDocBuilder:
 									return new_class
 					#bracket_stack_class.pop()
 					#print("funn",bracket_stack_class)
-
+				#print("lieb", line)
 				new_class.functions_body.append(" ".join(fun_body))
 				new_class.functions_ann.append(self.annotation)
+
 				self.annotation = list()
 				
 
@@ -586,6 +626,7 @@ class ClassDocBuilder:
 				if is_pop:
 					for i in bracket_stack:
 						bracket_stack_class.pop()
+				#print("fun body2", line)
 				if '{' in line:
 					bracket_stack = []
 					open_list = ["[","{","("] 
@@ -676,19 +717,23 @@ class ClassDocBuilder:
 
 	@staticmethod
 	def get_fun_name(fun):
-		decl = fun.split(" ")
-		for i, item in enumerate(decl):
-			if item == "fun":
-				while i < len(decl) - 1:
-					if re.compile("[A-Za-z0-9\\.<>]+").fullmatch(decl[i + 1].split('(')[0]):
-						if '(' in decl[i + 1]:
-							if '.' in decl[i + 1]:
-								return decl[i + 1].split('(')[0].split('.')[-1] 
-							return decl[i + 1].split('(')[0]
-					i += 1
-				return "anonymous"
-				#return decl[i + 1].split('(')[0]
+		name = re.findall(r"[a-zA-Z0-9_]+\(", fun)
+		if name != []:
+			return name[0].strip()[:-1]
 		return None
+		# decl = fun.split(" ")
+		# for i, item in enumerate(decl):
+		# 	if item == "fun":
+		# 		while i < len(decl) - 1:
+		# 			if re.compile("[A-Za-z0-9\\.<>_]+").fullmatch(decl[i + 1].split('(')[0]):
+		# 				if '(' in decl[i + 1]:
+		# 					if '.' in decl[i + 1]:
+		# 						return decl[i + 1].split('(')[0].split('.')[-1] 
+		# 					return decl[i + 1].split('(')[0]
+		# 			i += 1
+		# 		return "anonymous"
+		# 		#return decl[i + 1].split('(')[0]
+		# return None
 
 	@staticmethod
 	def get_prop_name(prop):

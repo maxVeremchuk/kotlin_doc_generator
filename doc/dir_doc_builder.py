@@ -1,4 +1,5 @@
 from . import class_doc_builder
+from collections import defaultdict
 import os
 
 class DirDocBuilder:
@@ -7,6 +8,7 @@ class DirDocBuilder:
 		self.root_dir = ""
 		self.dirs = list()
 		self.index = list()
+		self.alphabet = defaultdict(list)
 
 	def generate_classed_doc(self, path):
 		self.root_dir = path
@@ -45,6 +47,26 @@ class DirDocBuilder:
 					return dir_item.return_file(class_path, filename)
 		return None
 
+	def generate_alphabet(self, tree):
+		for file in tree.files:
+			for class_item in file.classes:
+				self.alphabet[class_item.class_name[0].lower()].append( \
+				[class_item.class_name + " --- class", file.class_path, file.filename])
+				for func in class_item.functions:
+					self.alphabet[class_doc_builder.ClassDocBuilder.get_fun_name(func)[0].lower()].append( \
+					[class_doc_builder.ClassDocBuilder.get_fun_name(func) + " --- function", \
+					file.class_path, file.filename])
+				for prop in class_item.props:
+					self.alphabet[class_doc_builder.ClassDocBuilder.get_prop_name(prop)[0].lower()].append( \
+					[class_doc_builder.ClassDocBuilder.get_prop_name(prop) + " --- property", \
+					file.class_path, file.filename])
+			for imports in file.imports:
+				imports_name = imports.split('.')[-1]
+				if not imports_name.strip() == "*":
+					self.alphabet[imports_name[0].lower()].append( \
+					[imports + " --- import", file.class_path, file.filename])
+		for dir_item in tree.dirs:	
+			self.generate_alphabet(dir_item)
 				
 	def print_tree(self):
 		for file in self.files:
