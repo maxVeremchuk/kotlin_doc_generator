@@ -135,7 +135,7 @@ class HTMLGenerator:
 			stream_file.write(self.head)
 			stream_file.write(self.print_top_tree(path, main_path))
 			if file.file_comment != "":
-				stream_file.write(self.file_descript.format(file.file_comment))
+				stream_file.write(self.file_descript.format(file.file_comment.replace('<', "&lt;").replace('>', "&gt;")))
 			for class_item in file.classes:
 				if class_item is None:
 					continue
@@ -159,7 +159,7 @@ class HTMLGenerator:
 				func_rep_tags = func.replace('<', "&lt;").replace('>', "&gt;")
 				stream_file.write(
 				self.attr.format(class_doc_builder.ClassDocBuilder.get_fun_name(func), annotations, func_rep_tags, \
-				file.functions_description[func] if func in file.functions_description else "", \
+				file.functions_description[func].replace('<', "&lt;").replace('>', "&gt;") if func in file.functions_description else "", \
 				""))
 			stream_file.write(self.end)
 
@@ -167,7 +167,7 @@ class HTMLGenerator:
 	def write_class_info_to_file(self, class_item, stream_file, indent, class_item_class_path):
 		filler = "<span style=\"margin-left:" + str(indent * 20) +"px\"></span>"
 		stream_file.write(self.class_name.format(filler + class_item.class_name, filler + class_item.full_class_name, \
-			filler + class_item.description))
+			filler + class_item.description.replace('<', "&lt;").replace('>', "&gt;")))
 		stream_file.write(self.header.format(filler + "Constructors"))
 		if class_item.primary_constructor != "":
 			stream_file.write(self.attr.format(filler + "primary", "", filler + class_item.primary_constructor, "", ""))
@@ -188,7 +188,7 @@ class HTMLGenerator:
 				annotations += annotation + "<br>"
 			stream_file.write( \
 			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_prop_name(prop), filler + annotations, filler + prop, \
-			filler + class_item.props_description[prop] if prop in class_item.props_description else "", ""))
+			filler + class_item.props_description[prop].replace('<', "&lt;").replace('>', "&gt;") if prop in class_item.props_description else "", ""))
 
 		stream_file.write(self.header.format(filler + "Functions"))
 		for i, func in enumerate(class_item.functions):
@@ -219,7 +219,7 @@ class HTMLGenerator:
 			func_rep_tags = func.replace('<', "&lt;").replace('>', "&gt;")
 			stream_file.write( \
 			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_fun_name(func), filler + annotations, filler +  func_rep_tags, \
-			filler + class_item.functions_description[func] if func in class_item.functions_description else "", \
+			filler + class_item.functions_description[func].replace('<', "&lt;").replace('>', "&gt;") if func in class_item.functions_description else "", \
 			filler + import_functions))		
 
 	def build_index_from_md(self, path, tree, main_path, origin_main_dir, build_index):
