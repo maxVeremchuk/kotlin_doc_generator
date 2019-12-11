@@ -50,6 +50,8 @@ class DirDocBuilder:
 	def generate_alphabet(self, tree):
 		for file in tree.files:
 			for class_item in file.classes:
+				if class_item is None:
+					continue
 				self.alphabet[class_item.class_name[0].lower()].append( \
 				[class_item.class_name + " --- class", file.class_path, file.filename])
 				for func in class_item.functions:
