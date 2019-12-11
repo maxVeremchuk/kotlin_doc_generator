@@ -51,6 +51,7 @@ class ClassDocBuilder:
 			with open(os.path.join(class_path, filename), "r") as file:
 				self.init_content = file.readlines()
 			self.init_content.append("")
+			self.init_content.append("")
 			temp_init_content = "`".join(self.init_content)
 			finded_line = re.findall(r'"([^"]*)"', temp_init_content)
 			if finded_line is not None:
@@ -93,6 +94,8 @@ class ClassDocBuilder:
 		else: 
 			self.first_comment = False
 			line = self.handle_annotation(line)
+			#print(self.annotation)
+			#print(line)
 			if line.strip().startswith("//"):
 				return
 			elif line.strip().startswith("class ") or " class " in line \
@@ -110,7 +113,7 @@ class ClassDocBuilder:
 				else:
 					self.imports.append(line.split(" ")[1])
 			elif line.strip().startswith("fun ") or " fun " in line:
-
+				#print("a", self.annotation)
 				bracket_stack = []
 				open_list = ["[","{","("] 
 				close_list = ["]","}",")"] 
@@ -195,7 +198,6 @@ class ClassDocBuilder:
 
 		while line.strip().startswith('@'):
 			full_annotation = ""
-
 			if re.findall(r'@[A-Za-z0-9:,\.]+\(', line) != []:
 				#print(line)
 				annotation_name, line_without_name = line.split('(', 1)
@@ -231,8 +233,8 @@ class ClassDocBuilder:
 								return line
 					if stop:
 						break
-				
-				if line_without_name == "":
+					line = next(self.iter_input)
+				if line_without_name.strip() == "":
 					line = next(self.iter_input)
 				else:
 					line = line_without_name.strip()
@@ -316,6 +318,7 @@ class ClassDocBuilder:
 			# if len(self.memory) > 0:
 			# 	line = self.memory.pop()
 			# else:
+			#print("1", line)
 			self.annotation = list()
 			if not self.skip:
 				line = next(self.iter_input)
@@ -426,172 +429,229 @@ class ClassDocBuilder:
 
 
 			elif line.strip().startswith("fun ") or " fun " in line:
-				#print("fun decl", line)
-				has_body = True
-				#print("interface", is_interface)
-				if line.strip().endswith("{"):
-					bracket_stack_class.pop()
-				if not is_interface:
-					#print("here")
-					if line.strip().startswith("abstract ") or " abstract " in line:
-						has_body = False
-						bracket_stack = []
-						open_list = ["[","{","("] 
-						close_list = ["]","}",")"] 
-						first = True
-						last = False
-						temp_line = line
-						while(len(bracket_stack) != 0) or first:
-							#print("else", line)
-							first = False
-							for j, letter in enumerate(line):
-								if letter in open_list:
-									bracket_stack.append(letter)
-									last = False
-									#print("else append", bracket_stack)
-								elif letter in close_list:
-									pos = close_list.index(letter)
-									#print(letter)
-									if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
-										bracket_stack.pop()
-										#print("else pop ", bracket_stack)
-										if len(bracket_stack) == 0:
-											#print("break",line)
-											last = True
-									else:
-										print(" FUN BODY ABS")
-										return new_class
-							if not last:
-								line = next(self.iter_input)
-								temp_line = temp_line.strip() + " " + line
-						line = temp_line
-						#print("abstract",line)
-					else:
-						#print("here2")
-						if "=" not in line:
-							#print("here3")
-							while line.strip()[-1] != "{" and not line.strip().endswith("{}"):
-								
-								if '=' in line:
-									break
-								temp_line = next(self.iter_input)
-								if temp_line.strip() == "" or temp_line.strip() == "}" \
-								or temp_line.strip().startswith("fun ") or " fun " in temp_line \
-								or temp_line.strip().startswith("class ") or " class " in temp_line \
-								or temp_line.strip().startswith("interface ") or " interface " in temp_line \
-								or temp_line.strip().startswith("object ") or " object " in temp_line \
-								or temp_line.strip().startswith("val ") or " val " in temp_line \
-								or temp_line.strip().startswith("var ") or " var " in temp_line:
-									has_body = False 
-									self.skip = True
-									self.skip_line = temp_line
-									break
-									#line = temp_line
-								else:
-									line = line.strip() + " " + temp_line
-								#print("loop", line)
-								 
-
-
-						if line.strip().endswith("="):
-							line = line.strip()[:-1]
-							has_body = False
-				
-					# while line.strip().endswith('(') or line.strip().endswith(','):
-					# 	line = line.strip() + " " + next(self.iter_input).strip()
-					# if line.strip().endswith("="):
-					# 	line = line.strip() + " " + next(self.iter_input)
-					# 	if "||" in line or "&&" in line:
-					# 		while line.strip().endswith("||") or line.strip().endswith("&&"):
-					# 			line = line.strip() + " " + next(self.iter_input).strip()
-					# 	else:
-					# 		while not line.strip().endswith(')') and not line.strip().endswith('}'):
-					# 			line = line.strip() + " " + next(self.iter_input)
+				bracket_stack = []
+				open_list = ["[","{","("] 
+				close_list = ["]","}",")"] 
+				first = True
+				last = False
+				temp_line = line
+				while(len(bracket_stack) != 0) or first:
+					first = False
+					for j, letter in enumerate(line):
+						if letter in open_list:
+							last = False
+							bracket_stack.append(letter)
+						elif letter in close_list:
+							pos = close_list.index(letter)
+							if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+								bracket_stack.pop()
+								if len(bracket_stack) == 0:
+									last = True
+							else:
+								print(" FUN")
+								return
+					if not last:
+						line = next(self.iter_input)
+						temp_line += line
+				line = temp_line
+				print(line)
+				fun_body = ""
+				if line.strip().endswith("{}"):
+				 	line = line.strip()[:-2]
+				 	fun_body = ""
 				else:
-					# while line.strip()[-1] != ")" and "):" not in line:
-					# 	if line.strip().endswith('{'):
-					# 		has_body = True
-					# 		break
-					# 	line = line.strip() + " " + next(self.iter_input).strip()
-					# if line.strip().endswith("="):
-					# 	while not line.strip().endswith(')') or "):" in line:
-					# 		line = line.strip() + " " + next(self.iter_input)
-					# while line.strip().endswith("||") or line.strip().endswith("&&"):
-					# 	line = line.strip() + " " + next(self.iter_input).strip()
-					if line.strip().endswith("="):
-						line = line.strip()[:-1]
-						has_body = False
+					fun_body = re.findall(r"\{\s[\s\S]*\}$", line)
+		
+					if len(fun_body) != 0:
+						fun_body = fun_body[0]
+						line = line[:line.find(fun_body)]
 					else:
-						bracket_stack = []
-						open_list = ["[","("] 
-						close_list = ["]",")"] 
-						first = True
-						last = False
-						temp_line = line
-						while(len(bracket_stack) != 0) or first:
-							first = False
-							#print("con", line)
-							for j, letter in enumerate(line):
-								if letter in open_list:
-									last = False
-									bracket_stack.append(letter)
-								elif letter in close_list:
-									pos = close_list.index(letter)
-									if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
-										bracket_stack.pop()
-										if len(bracket_stack) == 0:
-											last = True
-									else:
-										print(" FUN")
-										return new_class
-							if not last:
-								line = next(self.iter_input)
-								temp_line += line.strip()
-						line = temp_line
-
-
-
-
-				if line.strip()[-1] == "{":
-					line = line.strip()[:-1]
-				elif line.strip().endswith("{}"):
-					line = line.strip()[:-2]
-				else:
-					line = line.strip()
-					has_body = False
+						fun_body = ""
+				# has_body = False
+				# if line.strip()[-1] == "{":
+				# 	line = line.strip()[:-1]
+				# 	has_body = True
+				# 	if line.strip().endswith("when"):
+				# 		line = line.strip()[:len(line) - 6]
 				
+
+
+				#line = line[:line.find('{')]
+				#print(line)
+				new_class.functions_body.append(fun_body)
 				new_class.functions.append(line.strip())
 				if self.comment != "":
 					new_class.functions_description[line.strip()] = self.comment
 					self.comment = ""
-				#print("fun body",line)
-				fun_body = list()
-				if has_body:
-					bracket_stack = ["{"]
-					open_list = ["[","{","("] 
-					close_list = ["]","}",")"] 
-					while(len(bracket_stack) != 0):
-						#print("funnn", line)
-						line = next(self.iter_input)
-						#print("funnn after", line)
-						fun_body.append(line)
-						for j, letter in enumerate(line):
-							if letter in open_list:
-								bracket_stack.append(letter)
-							elif letter in close_list:
-								pos = close_list.index(letter)
-								if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
-									bracket_stack.pop()
-								else:
-									print(" FUN")
-									return new_class
-					#bracket_stack_class.pop()
-					#print("funn",bracket_stack_class)
-				#print("lieb", line)
-				new_class.functions_body.append(" ".join(fun_body))
 				new_class.functions_ann.append(self.annotation)
 
 				self.annotation = list()
+				if fun_body.strip() != "":
+					bracket_stack_class.pop()
+				# #print("fun decl", line)
+				# has_body = True
+				# #print("interface", is_interface)
+				# if line.strip().endswith("{"):
+				# 	bracket_stack_class.pop()
+				# if not is_interface:
+				# 	#print("here")
+				# 	if line.strip().startswith("abstract ") or " abstract " in line:
+				# 		has_body = False
+				# 		bracket_stack = []
+				# 		open_list = ["[","{","("] 
+				# 		close_list = ["]","}",")"] 
+				# 		first = True
+				# 		last = False
+				# 		temp_line = line
+				# 		while(len(bracket_stack) != 0) or first:
+				# 			#print("else", line)
+				# 			first = False
+				# 			for j, letter in enumerate(line):
+				# 				if letter in open_list:
+				# 					bracket_stack.append(letter)
+				# 					last = False
+				# 					#print("else append", bracket_stack)
+				# 				elif letter in close_list:
+				# 					pos = close_list.index(letter)
+				# 					#print(letter)
+				# 					if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+				# 						bracket_stack.pop()
+				# 						#print("else pop ", bracket_stack)
+				# 						if len(bracket_stack) == 0:
+				# 							#print("break",line)
+				# 							last = True
+				# 					else:
+				# 						print(" FUN BODY ABS")
+				# 						return new_class
+				# 			if not last:
+				# 				line = next(self.iter_input)
+				# 				temp_line = temp_line.strip() + " " + line
+				# 		line = temp_line
+				# 		#print("abstract",line)
+				# 	else:
+				# 		#print("here2")
+				# 		if "=" not in line:
+				# 			#print("here3")
+				# 			while line.strip()[-1] != "{" and not line.strip().endswith("{}"):
+								
+				# 				if '=' in line:
+				# 					break
+				# 				temp_line = next(self.iter_input)
+				# 				if temp_line.strip() == "" or temp_line.strip() == "}" \
+				# 				or temp_line.strip().startswith("fun ") or " fun " in temp_line \
+				# 				or temp_line.strip().startswith("class ") or " class " in temp_line \
+				# 				or temp_line.strip().startswith("interface ") or " interface " in temp_line \
+				# 				or temp_line.strip().startswith("object ") or " object " in temp_line \
+				# 				or temp_line.strip().startswith("val ") or " val " in temp_line \
+				# 				or temp_line.strip().startswith("var ") or " var " in temp_line:
+				# 					has_body = False 
+				# 					self.skip = True
+				# 					self.skip_line = temp_line
+				# 					break
+				# 					#line = temp_line
+				# 				else:
+				# 					line = line.strip() + " " + temp_line
+				# 				#print("loop", line)
+								 
+
+
+				# 		if line.strip().endswith("="):
+				# 			line = line.strip()[:-1]
+				# 			has_body = False
+				
+				# 	# while line.strip().endswith('(') or line.strip().endswith(','):
+				# 	# 	line = line.strip() + " " + next(self.iter_input).strip()
+				# 	# if line.strip().endswith("="):
+				# 	# 	line = line.strip() + " " + next(self.iter_input)
+				# 	# 	if "||" in line or "&&" in line:
+				# 	# 		while line.strip().endswith("||") or line.strip().endswith("&&"):
+				# 	# 			line = line.strip() + " " + next(self.iter_input).strip()
+				# 	# 	else:
+				# 	# 		while not line.strip().endswith(')') and not line.strip().endswith('}'):
+				# 	# 			line = line.strip() + " " + next(self.iter_input)
+				# else:
+				# 	# while line.strip()[-1] != ")" and "):" not in line:
+				# 	# 	if line.strip().endswith('{'):
+				# 	# 		has_body = True
+				# 	# 		break
+				# 	# 	line = line.strip() + " " + next(self.iter_input).strip()
+				# 	# if line.strip().endswith("="):
+				# 	# 	while not line.strip().endswith(')') or "):" in line:
+				# 	# 		line = line.strip() + " " + next(self.iter_input)
+				# 	# while line.strip().endswith("||") or line.strip().endswith("&&"):
+				# 	# 	line = line.strip() + " " + next(self.iter_input).strip()
+				# 	if line.strip().endswith("="):
+				# 		line = line.strip()[:-1]
+				# 		has_body = False
+				# 	else:
+				# 		bracket_stack = []
+				# 		open_list = ["[","("] 
+				# 		close_list = ["]",")"] 
+				# 		first = True
+				# 		last = False
+				# 		temp_line = line
+				# 		while(len(bracket_stack) != 0) or first:
+				# 			first = False
+				# 			#print("con", line)
+				# 			for j, letter in enumerate(line):
+				# 				if letter in open_list:
+				# 					last = False
+				# 					bracket_stack.append(letter)
+				# 				elif letter in close_list:
+				# 					pos = close_list.index(letter)
+				# 					if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+				# 						bracket_stack.pop()
+				# 						if len(bracket_stack) == 0:
+				# 							last = True
+				# 					else:
+				# 						print(" FUN")
+				# 						return new_class
+				# 			if not last:
+				# 				line = next(self.iter_input)
+				# 				temp_line += line.strip()
+				# 		line = temp_line
+
+
+
+
+				# if line.strip()[-1] == "{":
+				# 	line = line.strip()[:-1]
+				# elif line.strip().endswith("{}"):
+				# 	line = line.strip()[:-2]
+				# else:
+				# 	line = line.strip()
+				# 	has_body = False
+				
+				# new_class.functions.append(line.strip())
+				# if self.comment != "":
+				# 	new_class.functions_description[line.strip()] = self.comment
+				# 	self.comment = ""
+				# #print("fun body",line)
+				# fun_body = list()
+				# if has_body:
+				# 	bracket_stack = ["{"]
+				# 	open_list = ["[","{","("] 
+				# 	close_list = ["]","}",")"] 
+				# 	while(len(bracket_stack) != 0):
+				# 		#print("funnn", line)
+				# 		line = next(self.iter_input)
+				# 		#print("funnn after", line)
+				# 		fun_body.append(line)
+				# 		for j, letter in enumerate(line):
+				# 			if letter in open_list:
+				# 				bracket_stack.append(letter)
+				# 			elif letter in close_list:
+				# 				pos = close_list.index(letter)
+				# 				if ((len(bracket_stack) > 0) and (open_list[pos] == bracket_stack[-1])): 
+				# 					bracket_stack.pop()
+				# 				else:
+				# 					print(" FUN")
+				# 					return new_class
+					#bracket_stack_class.pop()
+					#print("funn",bracket_stack_class)
+				#print("lieb", line)
+				#new_class.functions_body.append(" ".join(fun_body))
+				
 				
 
 

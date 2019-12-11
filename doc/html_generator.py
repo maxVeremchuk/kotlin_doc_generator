@@ -155,7 +155,7 @@ class HTMLGenerator:
 				if len(file.functions_ann[i]) > 0:
 					annotations = "<b style=\"color:black\">Annotations:</b><br>"
 				for annotation in file.functions_ann[i]:
-					annotations += annotation + "\n"
+					annotations += annotation + "<br>"
 				func_rep_tags = func.replace('<', "&lt;").replace('>', "&gt;")
 				stream_file.write(
 				self.attr.format(class_doc_builder.ClassDocBuilder.get_fun_name(func), annotations, func_rep_tags, \
@@ -176,7 +176,7 @@ class HTMLGenerator:
 			if len(class_item.constructors_ann[i]) > 0:
 				annotations = "<b style=\"color:black\">Annotations:</b><br>"
 			for annotation in class_item.constructors_ann[i]:
-				annotations += annotation + "\n"
+				annotations += annotation + "<br>"
 			stream_file.write(self.attr.format(filler + "secondary", filler + annotations, filler + constructor, "", ""))
 
 		stream_file.write(self.header.format(filler + "Properties"))
@@ -185,7 +185,7 @@ class HTMLGenerator:
 			if len(class_item.props_ann[i]) > 0:
 				annotations = "<b style=\"color:black\">Annotations:</b><br>"
 			for annotation in class_item.props_ann[i]:
-				annotations += annotation + "\n"
+				annotations += annotation + "<br>"
 			stream_file.write( \
 			self.attr.format(filler + class_doc_builder.ClassDocBuilder.get_prop_name(prop), filler + annotations, filler + prop, \
 			filler + class_item.props_description[prop] if prop in class_item.props_description else "", ""))
@@ -197,7 +197,7 @@ class HTMLGenerator:
 				if len(class_item.functions_ann[i]) > 0:
 					annotations = "<b style=\"color:black\">Annotations:</b><br>"
 				for annotation in class_item.functions_ann[i]:
-					annotations += annotation + "\n"
+					annotations += annotation + "<br>"
 
 			import_functions = ""
 			for imported_func in class_item.imports[func]:
