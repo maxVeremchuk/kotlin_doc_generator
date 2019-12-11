@@ -434,11 +434,13 @@ class ClassDocBuilder:
 				close_list = ["]","}",")"] 
 				first = True
 				last = False
+				blank_line = True
 				temp_line = line
 				while(len(bracket_stack) != 0) or first:
 					first = False
 					for j, letter in enumerate(line):
 						if letter in open_list:
+							blank_line = False
 							last = False
 							bracket_stack.append(letter)
 						elif letter in close_list:
@@ -448,13 +450,15 @@ class ClassDocBuilder:
 								if len(bracket_stack) == 0:
 									last = True
 							else:
-								print(" FUN")
+								print("CLASS FUN")
 								return
 					if not last:
 						line = next(self.iter_input)
 						temp_line += line
+					if blank_line:
+						first = True
 				line = temp_line
-				print(line)
+				#print(line)
 				fun_body = ""
 				if line.strip().endswith("{}"):
 				 	line = line.strip()[:-2]
