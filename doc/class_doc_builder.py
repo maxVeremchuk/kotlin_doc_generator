@@ -54,9 +54,14 @@ class ClassDocBuilder:
 			self.init_content.append("")
 			temp_init_content = "`".join(self.init_content)
 			finded_line = re.findall(r'"([^"]*)"', temp_init_content)
+			finded_line += re.findall(r'\'([^\']*)\'', temp_init_content)
+			print(finded_line)
 			if finded_line is not None:
 				for line in finded_line:
-					temp_init_content = temp_init_content.replace("\"" + line  + "\"", "")
+					rep_line = line.replace("{", "~").replace("}", "~").replace(")", "~").replace("(", "~")\
+				.replace("[", "~").replace("]", "~")
+					temp_init_content = temp_init_content.replace("\'" + line + "\'", "\'" +  rep_line + "\'")
+					temp_init_content = temp_init_content.replace("\"" + line + "\"", "\"" +  rep_line + "\"")
 			self.init_content = temp_init_content.split("`")
 		except:
 			print("error in reading file")
@@ -66,14 +71,14 @@ class ClassDocBuilder:
 			yield line
 
 	def build_doucumentation(self):
-		try:
-			print(self.class_path)
-			print(self.filename)
-			self.iter_input = iter(self.next_input())
-			for line in self.iter_input:
-				self.parse_line(line)
-		except:
-			print("Some error in formating")
+		# try:
+		print(self.class_path)
+		print(self.filename)
+		self.iter_input = iter(self.next_input())
+		for line in self.iter_input:
+			self.parse_line(line)
+		# except:
+		# 	print("Some error in formating")
 
 	def parse_line(self, line):
 		#print("parse_line",line)	
@@ -194,6 +199,18 @@ class ClassDocBuilder:
 				self.parse_line(self.memory.pop())
 				#self.imports.append(line.split(" ")[1])
 
+	def cast_braces_in_strings(self, line):
+		if isinstance(line, str):
+			return line.replace("~1", "{").replace("~2", "}").replace("~3", ")").replace("~4", "(")\
+					.replace("~5", "[").replace("~6", "]")
+		elif isinstance(line, list):
+			new_list = list()
+			for line_line in line:
+				new_list.append(line_line.replace("~1", "{").replace("~2", "}").replace("~3", ")").replace("~4", "(")\
+					.replace("~5", "[").replace("~6", "]"))
+			return new_list
+		return None
+
 	def handle_annotation(self, line):
 
 		while line.strip().startswith('@'):
@@ -247,7 +264,7 @@ class ClassDocBuilder:
 					if line.strip() == "}":
 						self.skip = True
 						self.skip_line = line
-			self.annotation.append(full_annotation.strip())
+			self.annotation.append(self.cast_braces_in_strings(full_annotation.strip()))
 		return line
 
 	def build_class(self, line, is_interface = False):
@@ -422,13 +439,14 @@ class ClassDocBuilder:
 				
 				#bracket_stack_class.pop()
 
-				new_class.constructors.append(line)
-				new_class.constructors_ann.append(self.annotation)
+				new_class.constructors.append(self.cast_braces_in_strings(line))
+				new_class.constructors_ann.append(self.cast_braces_in_strings(self.annotation))
 				self.annotation = list()
 
 
 
 			elif line.strip().startswith("fun ") or " fun " in line:
+				print("bef", line)
 				bracket_stack = []
 				open_list = ["[","{","("] 
 				close_list = ["]","}",")"] 
@@ -438,6 +456,7 @@ class ClassDocBuilder:
 				temp_line = line
 				while(len(bracket_stack) != 0) or first:
 					first = False
+					print("in", line)
 					for j, letter in enumerate(line):
 						if letter in open_list:
 							blank_line = False
@@ -451,6 +470,7 @@ class ClassDocBuilder:
 									last = True
 							else:
 								print("CLASS FUN")
+								print(line)
 								return
 					if not last:
 						line = next(self.iter_input)
@@ -487,7 +507,7 @@ class ClassDocBuilder:
 				if self.comment != "":
 					new_class.functions_description[line.strip()] = self.comment
 					self.comment = ""
-				new_class.functions_ann.append(self.annotation)
+				new_class.functions_ann.append(self.cast_braces_in_strings(self.annotation))
 
 				self.annotation = list()
 				if fun_body.strip() != "":
@@ -665,7 +685,7 @@ class ClassDocBuilder:
 				if self.comment != "":
 					self.new_class.props_description[line.strip()] = self.comment
 					self.comment = ""
-				new_class.props_ann.append(self.annotation)
+				new_class.props_ann.append(self.cast_braces_in_strings(self.annotation))
 				self.annotation = list()
 			else:
 				#print("fun body", line)
