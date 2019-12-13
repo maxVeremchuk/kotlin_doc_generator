@@ -55,11 +55,11 @@ class ClassDocBuilder:
 			temp_init_content = "`".join(self.init_content)
 			finded_line = re.findall(r'"([^"]*)"', temp_init_content)
 			finded_line += re.findall(r'\'([^\']*)\'', temp_init_content)
-			print(finded_line)
+			#print(finded_line)
 			if finded_line is not None:
 				for line in finded_line:
-					rep_line = line.replace("{", "~").replace("}", "~").replace(")", "~").replace("(", "~")\
-				.replace("[", "~").replace("]", "~")
+					rep_line = line.replace("{", "~1").replace("}", "~2").replace(")", "~3").replace("(", "~4")\
+				.replace("[", "~5").replace("]", "~6")
 					temp_init_content = temp_init_content.replace("\'" + line + "\'", "\'" +  rep_line + "\'")
 					temp_init_content = temp_init_content.replace("\"" + line + "\"", "\"" +  rep_line + "\"")
 			self.init_content = temp_init_content.split("`")
@@ -71,14 +71,14 @@ class ClassDocBuilder:
 			yield line
 
 	def build_doucumentation(self):
-		# try:
-		print(self.class_path)
-		print(self.filename)
-		self.iter_input = iter(self.next_input())
-		for line in self.iter_input:
-			self.parse_line(line)
-		# except:
-		# 	print("Some error in formating")
+		try:
+			print(self.class_path)
+			print(self.filename)
+			self.iter_input = iter(self.next_input())
+			for line in self.iter_input:
+				self.parse_line(line)
+		except:
+			print("Some error in formating")
 
 	def parse_line(self, line):
 		#print("parse_line",line)	
@@ -446,7 +446,7 @@ class ClassDocBuilder:
 
 
 			elif line.strip().startswith("fun ") or " fun " in line:
-				print("bef", line)
+				#print("bef", line)
 				bracket_stack = []
 				open_list = ["[","{","("] 
 				close_list = ["]","}",")"] 
@@ -456,7 +456,7 @@ class ClassDocBuilder:
 				temp_line = line
 				while(len(bracket_stack) != 0) or first:
 					first = False
-					print("in", line)
+					#print("in", line)
 					for j, letter in enumerate(line):
 						if letter in open_list:
 							blank_line = False
@@ -470,7 +470,7 @@ class ClassDocBuilder:
 									last = True
 							else:
 								print("CLASS FUN")
-								print(line)
+								#print(line)
 								return
 					if not last:
 						line = next(self.iter_input)
